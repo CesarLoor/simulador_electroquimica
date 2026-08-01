@@ -28,6 +28,18 @@ const METALS = [
 ];
 
 // ==========================================
+// PRESETS DE CELDAS FAMOSAS
+// ==========================================
+const PRESETS = [
+  { name: 'Daniell (Zn–Cu)',       a: 7,  c: 14 },
+  { name: 'Volta (Zn–Ag)',         a: 7,  c: 15 },
+  { name: 'Sacrificio (Mg–Cu)',    a: 4,  c: 14 },
+  { name: 'Aluminio–Plata (Al–Ag)',a: 5,  c: 15 },
+  { name: 'Hierro–Cobre (Fe–Cu)',  a: 9,  c: 14 },
+  { name: 'Litio–Oro (Li–Au)',     a: 0,  c: 17 },
+];
+
+// ==========================================
 // STATE
 // ==========================================
 const S = {
@@ -37,6 +49,16 @@ const S = {
   electrons: [],
   ions: [],
   Ecell: 0,
+};
+
+// Quiz state
+const Q = {
+  active: false,
+  a: null, c: null,
+  questions: [],
+  qIdx: 0,
+  score: 0,
+  answered: false,
 };
 
 let canvas, ctx;
@@ -49,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ctx = canvas.getContext('2d');
 
   populateSelects();
+  renderPresets();
   bindEvents();
   resize();
   window.addEventListener('resize', resize);
@@ -78,6 +101,61 @@ function bindEvents() {
     document.getElementById('cathodeSel').value = S.ci;
     update();
   });
+  document.getElementById('quizToggle').addEventListener('click', () => {
+    Q.active = !Q.active;
+    const el = document.getElementById('quizToggle');
+    el.classList.toggle('quiz-toggle--active', Q.active);
+    if (Q.active) { startQuiz(); }
+    else { renderQuiz(); }
+  });
+  document.getElementById('quizClose').addEventListener('click', () => {
+    Q.active = false;
+    document.getElementById('quizToggle').classList.remove('quiz-toggle--active');
+    renderQuiz();
+  });
+  document.getElementById('quizNext').addEventListener('click', quizNext);
+  document.getElementById('quizNew').addEventListener('click', startQuiz);
+}
+
+// ==========================================
+// PRESETS
+// ==========================================
+function renderPresets() {
+  const wrap = document.getElementById('presetBtns');
+  PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'preset-btn';
+    b.textContent = p.name;
+    b.addEventListener('click', () => applyPreset(p));
+    wrap.appendChild(b);
+  });
+  const r = document.createElement('button');
+  r.className = 'preset-btn preset-btn--random';
+  r.textContent = '🎲 Aleatoria';
+  r.title = 'Elegir una celda al azar';
+  r.addEventListener('click', applyRandomCell);
+  wrap.appendChild(r);
+}
+
+function applyPreset(p) {
+  S.ai = p.a; S.ci = p.c;
+  document.getElementById('anodeSel').value = S.ai;
+  document.getElementById('cathodeSel').value = S.ci;
+  update();
+  toast(`${METALS[p.a].symbol} − ${METALS[p.c].symbol} · E° = ${(METALS[p.c].E - METALS[p.a].E).toFixed(2)} V`, 'info');
+}
+
+function applyRandomCell() {
+  const i = Math.floor(Math.random() * METALS.length);
+  let j = Math.floor(Math.random() * METALS.length);
+  while (j === i) j = Math.floor(Math.random() * METALS.length);
+  const anode = METALS[i].E <= METALS[j].E ? i : j;
+  const cathode = anode === i ? j : i;
+  S.ai = anode; S.ci = cathode;
+  document.getElementById('anodeSel').value = S.ai;
+  document.getElementById('cathodeSel').value = S.ci;
+  update();
+  toast(`Celda aleatoria: ${METALS[anode].symbol} (ánodo) − ${METALS[cathode].symbol} (cátodo)`, 'info');
 }
 
 // ==========================================
@@ -140,6 +218,22 @@ function update() {
   // Notifications
   if (S.ai === S.ci) toast('Elige metales diferentes para formar la celda', 'warn');
   else if (S.Ecell < 0) toast('E° < 0 → celda no espontánea. Intercambia los electrodos.', 'warn');
+
+  renderNotation();
+}
+
+// ==========================================
+// CELL NOTATION (diagrama)
+// ==========================================
+function renderNotation() {
+  const a = METALS[S.ai], c = METALS[S.ci];
+  const part = m => m.symbol === 'H₂'
+    ? `Pt(s) | H₂(g) | H⁺(aq)`
+    : `${m.symbol}(s) | ${m.ion}(aq)`;
+  document.getElementById('cellNotation').innerHTML =
+    `<span class="notation__anode">${part(a)}</span>` +
+    `<span class="notation__bridge">||</span>` +
+    `<span class="notation__cathode">${part(c)}</span>`;
 }
 
 // ==========================================
@@ -414,6 +508,148 @@ function spawnAndDrawIons(lx, rx, cW, cY, cH, a, c) {
     return true;
   });
   ctx.restore();
+}
+
+// ==========================================
+// QUIZ / MODO PRÁCTICA
+// ==========================================
+function startQuiz() {
+  const excluded = new Set([13]); // H₂
+  let a, c;
+  do {
+    a = Math.floor(Math.random() * METALS.length);
+    c = Math.floor(Math.random() * METALS.length);
+  } while (a === c || excluded.has(a) || excluded.has(c));
+  if (METALS[a].E > METALS[c].E) [a, c] = [c, a];
+  Q.a = a; Q.c = c;
+  Q.questions = buildQuestions(a, c);
+  Q.qIdx = 0; Q.score = 0; Q.answered = false;
+  renderQuiz();
+  document.getElementById('quizSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function buildQuestions(ai, ci) {
+  const a = METALS[ai], c = METALS[ci];
+  const E = Math.abs(c.E - a.E);
+  const n = lcm(a.e, c.e);
+  const q1 = shuffledOptions(a.name, [c.name]);
+  const q2 = shuffledOptions(c.name, [a.name]);
+  const q3 = shuffledOptions(n, [a.e, c.e, a.e + c.e, a.e * c.e]);
+  const q4 = shuffledOptions(E, [
+    Math.abs(a.E) + Math.abs(c.E),
+    Math.abs(Math.abs(a.E) - Math.abs(c.E)),
+    E + 0.5,
+    Math.abs(a.E + c.E),
+  ]);
+  return [
+    {
+      text: `¿Qué metal es el ÁNODO (−), donde ocurre la oxidación?`,
+      options: q1.options, correctIdx: q1.correctIdx,
+      explain: `El ánodo es el de menor potencial de reducción (${a.symbol}, E° = ${a.E.toFixed(2)} V). Se oxida y cede electrones.`,
+    },
+    {
+      text: `¿Qué metal es el CÁTODO (+), donde ocurre la reducción?`,
+      options: q2.options, correctIdx: q2.correctIdx,
+      explain: `El cátodo es el de mayor potencial de reducción (${c.symbol}, E° = ${c.E.toFixed(2)} V). Capta electrones y se reduce.`,
+    },
+    {
+      text: `¿Cuántos electrones (n) se transfieren por unidad de reacción?`,
+      options: q3.options, correctIdx: q3.correctIdx,
+      explain: `n = mcm(${a.e}, ${c.e}) = ${n}. El mínimo común múltiplo de las valencias balancea la transferencia de electrones.`,
+    },
+    {
+      text: `¿Cuál es el potencial estándar de celda E° (en V)?`,
+      options: q4.options, correctIdx: q4.correctIdx,
+      explain: `E°celda = E°cátodo − E°ánodo = ${c.E.toFixed(2)} − (${a.E.toFixed(2)}) = ${E.toFixed(2)} V.`,
+    },
+  ];
+}
+
+function shuffledOptions(correct, distractors) {
+  const seen = new Set([correct]);
+  const pool = [correct];
+  for (const d of distractors) {
+    const v = typeof correct === 'number' ? Number(d.toFixed(2)) : d;
+    if (!seen.has(v)) { seen.add(v); pool.push(v); }
+  }
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return { options: pool, correctIdx: pool.indexOf(correct) };
+}
+
+function renderQuiz() {
+  const sec = document.getElementById('quizSection');
+  sec.hidden = !Q.active;
+  if (!Q.active) return;
+  const q = Q.questions[Q.qIdx];
+  const a = METALS[Q.a], c = METALS[Q.c];
+  document.getElementById('quizCell').textContent = `Celda: ${a.symbol} (${a.name}) vs ${c.symbol} (${c.name})`;
+  document.getElementById('quizCounter').textContent = `Pregunta ${Q.qIdx + 1} / ${Q.questions.length}`;
+  document.getElementById('quizScore').textContent = `Aciertos: ${Q.score}`;
+  document.getElementById('quizProgress').style.width =
+    `${(Q.qIdx / Q.questions.length) * 100}%`;
+  document.getElementById('quizQ').textContent = q.text;
+  document.getElementById('quizFeedback').hidden = true;
+  const opts = document.getElementById('quizOptions');
+  opts.innerHTML = '';
+  q.options.forEach((o, i) => {
+    const b = document.createElement('button');
+    b.className = 'quiz__opt';
+    b.textContent = o;
+    b.addEventListener('click', () => answerQuiz(i));
+    opts.appendChild(b);
+  });
+  document.getElementById('quizNext').hidden = true;
+  document.getElementById('quizNew').hidden = true;
+  Q.answered = false;
+}
+
+function answerQuiz(i) {
+  if (Q.answered) return;
+  Q.answered = true;
+  const q = Q.questions[Q.qIdx];
+  const ok = i === q.correctIdx;
+  if (ok) Q.score++;
+  document.querySelectorAll('#quizOptions .quiz__opt').forEach((b, j) => {
+    b.disabled = true;
+    if (j === q.correctIdx) b.classList.add('quiz__opt--correct');
+    else if (j === i) b.classList.add('quiz__opt--wrong');
+  });
+  const fb = document.getElementById('quizFeedback');
+  fb.hidden = false;
+  fb.className = 'quiz__feedback ' + (ok ? 'quiz__feedback--ok' : 'quiz__feedback--no');
+  fb.innerHTML = `<b>${ok ? 'Correcto' : 'Incorrecto'}.</b> ${q.explain}`;
+  document.getElementById('quizScore').textContent = `Aciertos: ${Q.score}`;
+  const last = Q.qIdx === Q.questions.length - 1;
+  const next = document.getElementById('quizNext');
+  next.hidden = false;
+  next.textContent = last ? 'Ver resultado' : 'Siguiente pregunta →';
+}
+
+function quizNext() {
+  if (Q.qIdx < Q.questions.length - 1) { Q.qIdx++; renderQuiz(); }
+  else showQuizResult();
+}
+
+function showQuizResult() {
+  const total = Q.questions.length;
+  const pct = Q.score / total;
+  const emoji = pct === 1 ? '🏆' : pct >= 0.75 ? '🎉' : pct >= 0.5 ? '👍' : '📚';
+  const msg = pct === 1 ? '¡Perfecto, dominas la electroquímica!'
+    : pct >= 0.75 ? '¡Muy bien! Sigue así.'
+    : pct >= 0.5 ? 'Vas bien, repasa la teoría y vuelve a intentarlo.'
+    : 'No te desanimes: revisa la teoría y vuelve a intentarlo.';
+  document.getElementById('quizQ').textContent = '';
+  document.getElementById('quizOptions').innerHTML = '';
+  document.getElementById('quizProgress').style.width = '100%';
+  const fb = document.getElementById('quizFeedback');
+  fb.hidden = false;
+  fb.className = 'quiz__feedback ' + (pct >= 0.75 ? 'quiz__feedback--ok' : 'quiz__feedback--no');
+  fb.innerHTML = `${emoji} Resultado: <b>${Q.score} / ${total}</b> correctas (${Math.round(pct * 100)} %). ${msg}`;
+  document.getElementById('quizNext').hidden = true;
+  document.getElementById('quizNew').hidden = false;
 }
 
 // ==========================================

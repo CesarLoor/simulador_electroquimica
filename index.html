@@ -44,6 +44,15 @@
       </div>
     </section>
 
+    <!-- Presets & Quiz Toggle -->
+    <div class="toolbar fade-in" aria-label="Celdas famosas y modo práctica">
+      <div class="toolbar__presets">
+        <span class="toolbar__label">Celdas famosas</span>
+        <div id="presetBtns" class="preset-btns"></div>
+      </div>
+      <button id="quizToggle" class="quiz-toggle" aria-label="Activar modo práctica">🎓 Modo Práctica</button>
+    </div>
+
     <!-- Cell Visualization -->
     <div class="cell-card fade-in">
       <canvas id="cellCanvas" class="cell-card__canvas"></canvas>
@@ -84,6 +93,40 @@
       <div class="eq-row">
         <span class="eq-row__badge eq-row__badge--global">Global</span>
         <span id="eqGlobal" class="eq-row__text"></span>
+      </div>
+    </section>
+
+    <!-- Cell Notation -->
+    <section class="notation fade-in" aria-label="Notación de celda">
+      <div class="equations__title">Notación de Celda (Diagrama)</div>
+      <div id="cellNotation" class="notation__value"></div>
+      <div class="notation__legend">
+        <span class="notation__legend-item"><b>|</b> frontera de fase</span>
+        <span class="notation__legend-item"><b>||</b> puente salino</span>
+        <span class="notation__legend-item">Ánodo a la izquierda · Cátodo a la derecha</span>
+      </div>
+    </section>
+
+    <!-- Quiz / Practice Mode -->
+    <section id="quizSection" class="quiz fade-in" aria-label="Modo práctica" hidden>
+      <div class="quiz__head">
+        <div>
+          <div class="quiz__title">🎓 Modo Práctica</div>
+          <div id="quizCell" class="quiz__cell"></div>
+        </div>
+        <button id="quizClose" class="quiz__close" aria-label="Cerrar modo práctica">✕</button>
+      </div>
+      <div class="quiz__progress"><div id="quizProgress" class="quiz__progress-bar"></div></div>
+      <div class="quiz__meta">
+        <span id="quizCounter">Pregunta 1 / 4</span>
+        <span id="quizScore" class="quiz__score">Aciertos: 0</span>
+      </div>
+      <div id="quizQ" class="quiz__q"></div>
+      <div id="quizOptions" class="quiz__options"></div>
+      <div id="quizFeedback" class="quiz__feedback" hidden></div>
+      <div class="quiz__actions">
+        <button id="quizNext" class="btn btn--primary" hidden>Siguiente pregunta →</button>
+        <button id="quizNew" class="btn" hidden>🎲 Nueva celda</button>
       </div>
     </section>
 
