@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Simulador educativo de celdas galvánicas. Selecciona ánodo y cátodo, observa la reacción y aprende electroquímica.">
+  <title>Celdas Galvánicas — Simulador Educativo</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div id="toast" class="toast"></div>
+
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header fade-in">
+      <div class="header__badge">⚡ Electroquímica Interactiva</div>
+      <h1 class="header__title">Simulador de Celdas Galvánicas</h1>
+      <p class="header__sub">Elige el ánodo y el cátodo para observar cómo reacciona la celda en tiempo real</p>
+    </header>
+
+    <!-- Selectors -->
+    <section class="selectors fade-in" aria-label="Selección de electrodos">
+      <div class="selector">
+        <div class="selector__label selector__label--anode">
+          ⊖ Ánodo
+          <span class="selector__tag selector__tag--ox">Oxidación</span>
+        </div>
+        <select id="anodeSel" class="selector__select" aria-label="Metal del ánodo"></select>
+        <div id="anodeInfo" class="selector__info"></div>
+      </div>
+
+      <button id="swapBtn" class="swap-btn" title="Intercambiar electrodos" aria-label="Intercambiar">⇄</button>
+
+      <div class="selector">
+        <div class="selector__label selector__label--cathode">
+          ⊕ Cátodo
+          <span class="selector__tag selector__tag--red">Reducción</span>
+        </div>
+        <select id="cathodeSel" class="selector__select" aria-label="Metal del cátodo"></select>
+        <div id="cathodeInfo" class="selector__info"></div>
+      </div>
+    </section>
+
+    <!-- Cell Visualization -->
+    <div class="cell-card fade-in">
+      <canvas id="cellCanvas" class="cell-card__canvas"></canvas>
+    </div>
+
+    <!-- Results Bar -->
+    <div class="results fade-in">
+      <div class="results__item">
+        <div class="results__label">Potencial de Celda (E°)</div>
+        <div id="potVal" class="results__value results__value--positive">+1.10 V</div>
+        <div id="potSub" class="results__sub results__sub--ok">✓ Espontánea</div>
+      </div>
+      <div class="results__divider"></div>
+      <div class="results__item">
+        <div class="results__label">Electrones Transferidos</div>
+        <div id="nElectrons" class="results__value" style="color: var(--accent);">2 e⁻</div>
+        <div class="results__sub results__sub--neutral">por mol de reacción</div>
+      </div>
+      <div class="results__divider"></div>
+      <div class="results__item">
+        <div class="results__label">Energía Libre (ΔG°)</div>
+        <div id="dGVal" class="results__value results__value--positive">-212.3 kJ/mol</div>
+        <div class="results__sub results__sub--neutral">ΔG° = −nFE°</div>
+      </div>
+    </div>
+
+    <!-- Equations -->
+    <section class="equations fade-in" aria-label="Ecuaciones">
+      <div class="equations__title">Ecuaciones de la Reacción</div>
+      <div class="eq-row">
+        <span class="eq-row__badge eq-row__badge--ox">Oxidación</span>
+        <span id="eqOx" class="eq-row__text"></span>
+      </div>
+      <div class="eq-row">
+        <span class="eq-row__badge eq-row__badge--red">Reducción</span>
+        <span id="eqRed" class="eq-row__text"></span>
+      </div>
+      <div class="eq-row">
+        <span class="eq-row__badge eq-row__badge--global">Global</span>
+        <span id="eqGlobal" class="eq-row__text"></span>
+      </div>
+    </section>
+
+    <!-- Educational Info Pills -->
+    <section class="info-pills fade-in" aria-label="Conceptos clave">
+      <div class="info-pill">
+        <div class="info-pill__icon">🔋</div>
+        <div class="info-pill__title">Celda Galvánica</div>
+        <div class="info-pill__text">Convierte energía química en eléctrica mediante una reacción redox espontánea (E° > 0).</div>
+      </div>
+      <div class="info-pill">
+        <div class="info-pill__icon">⚡</div>
+        <div class="info-pill__title">Flujo de Electrones</div>
+        <div class="info-pill__text">Los electrones fluyen del ánodo (−) al cátodo (+) por el circuito externo generando corriente.</div>
+      </div>
+      <div class="info-pill">
+        <div class="info-pill__icon">🌉</div>
+        <div class="info-pill__title">Puente Salino</div>
+        <div class="info-pill__text">Permite el flujo de iones entre semiceldas para mantener la neutralidad eléctrica.</div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Potenciales estándar medidos a 25 °C, 1 atm, 1 M &middot; Simulador educativo de electroquímica
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
