@@ -26,3 +26,4 @@ Mejoras planificadas (guardadas para futuras iteraciones).
 ## Notas de diseño
 - El resto de la app está en `index.html`, `styles.css`, `app.js`.
 - Preferir no romper la API actual de `METALS` (índices usados por presets).
+aaa
